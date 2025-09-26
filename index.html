@@ -59,11 +59,19 @@
   const downloadBtn = document.getElementById("download");
 
   // キャリブレーション位置（%）とラベル
-  const calibrationPoints = [
-    {x: 5, y: 5,  label: "1"}, {x:50, y:5,  label: "2"}, {x:95, y:5,  label: "3"},
-    {x: 5, y:50, label: "4"}, {x:50, y:50, label: "5"}, {x:95, y:50, label: "6"},
-    {x: 5, y:95, label: "7"}, {x:50, y:95, label: "8"}, {x:95, y:95, label: "9"}
-  ];
+    // キャリブレーション位置（4×4 = 16点）
+const calibrationPoints = [];
+const gridSize = 4;
+let label = 1;
+for (let i = 0; i < gridSize; i++) {
+  for (let j = 0; j < gridSize; j++) {
+    calibrationPoints.push({
+      x: (j + 0.5) * (100 / gridSize),
+      y: (i + 0.5) * (100 / gridSize),
+      label: String(label++)
+    });
+  }
+}
 
   let currentPoint = 0;
   let collecting = false;
@@ -87,6 +95,15 @@
   // ----------------------------
   // ヘルパー関数
   // ----------------------------
+    // 配列シャッフル関数（Fisher-Yates）
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function pageCoordsFromWebgazer(data) {
@@ -178,11 +195,13 @@
     await webgazer.begin();
 
     // 収集ループ
-    for (let i=0; i<calibrationPoints.length; i++) {
-      const p = calibrationPoints[i];
-      await collectSamplesAtPoint(p, p.label);
-      currentPoint++;
-    }
+    // 順序をランダム化して収集
+const randomizedPoints = shuffle([...calibrationPoints]);
+for (let i=0; i<randomizedPoints.length; i++) {
+  const p = randomizedPoints[i];
+  await collectSamplesAtPoint(p, p.label);
+  currentPoint++;
+}
 
     statusEl.textContent = "全点収集完了。モデルを学習します...";
     // 学習（これにより収集したサンプルが回帰に反映される）
@@ -255,3 +274,4 @@
   </script>
 </body>
 </html>
+
